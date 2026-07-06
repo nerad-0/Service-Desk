@@ -4,6 +4,7 @@
         categories: [],
         ticketsPage: 1,
         selectedTicketId: null,
+        selectedTicket: null,
         users: [],
         roles: [],
         adminTab: 'dashboard',
@@ -268,17 +269,24 @@
 
     function renderTickets(tickets) {
         const rows = tickets.map((ticket) => `
-            <tr class="click-row" data-ticket-id="${ticket.id}">
+            <tr class="click-row${Number(ticket.id) === Number(state.selectedTicketId) ? ' is-selected' : ''}" data-ticket-id="${ticket.id}">
                 <td>#${ticket.id}</td>
                 <td>${escapeHtml(ticket.title)}</td>
                 <td>${statusBadge(ticket.status)}</td>
                 <td>${priorityBadge(ticket.priority)}</td>
-                <td><span class="badge" style="background:${escapeAttr(ticket.category_color)}">${escapeHtml(ticket.category_name)}</span></td>
+                <td><span class="badge category-badge" style="background:${escapeAttr(ticket.category_color)}">${escapeHtml(ticket.category_name)}</span></td>
                 <td>${escapeHtml(ticket.author_name || '')}</td>
             </tr>
         `);
 
         $('#ticketRows').innerHTML = rows.length ? rows.join('') : '<tr><td colspan="6">Žádné požadavky nebyly nalezeny.</td></tr>';
+        markSelectedTicketRow(state.selectedTicketId);
+    }
+
+    function markSelectedTicketRow(id) {
+        $$('#ticketRows [data-ticket-id]').forEach((row) => {
+            row.classList.toggle('is-selected', Number(row.dataset.ticketId) === Number(id));
+        });
     }
 
     function renderPagination(pagination) {
@@ -323,6 +331,8 @@
 
             const data = await api.get(`tickets/${id}`);
             state.selectedTicketId = Number(id);
+            state.selectedTicket = data.ticket;
+            markSelectedTicketRow(id);
             renderTicketDetail(data);
         } catch (error) {
             showToast(error.message, true);
@@ -334,6 +344,8 @@
     function renderTicketDetail(data) {
         const ticket = data.ticket;
         const manager = Boolean(data.can_manage);
+        const canEditMainFields = manager || ['new', 'open', 'waiting_for_user'].includes(ticket.status);
+        const assignee = ticket.assigned_name || 'Nepřiřazeno';
         const categoryOptions = state.categories.map((category) => (
             `<option value="${category.id}" ${Number(category.id) === Number(ticket.category_id) ? 'selected' : ''}>${escapeHtml(category.name)}</option>`
         )).join('');
@@ -343,61 +355,38 @@
             .join('');
 
         $('#ticketDetail').innerHTML = `
-            <h2>#${ticket.id} ${escapeHtml(ticket.title)}</h2>
-            <p class="meta">${escapeHtml(ticket.author_name)} · ${escapeHtml(ticket.created_at)} · ${escapeHtml(ticket.category_name)}</p>
-            <form id="ticketUpdateForm" class="stack" data-ticket-id="${ticket.id}">
-                <label>
-                    Název
-                    <input type="text" name="title" minlength="5" maxlength="160" value="${escapeAttr(ticket.title)}" required>
-                </label>
-                <label>
-                    Kategorie
-                    <select name="category_id">${categoryOptions}</select>
-                </label>
-                <label>
-                    Priorita
-                    <select name="priority">
-                        ${priorityOption('low', ticket.priority)}
-                        ${priorityOption('medium', ticket.priority)}
-                        ${priorityOption('high', ticket.priority)}
-                        ${priorityOption('urgent', ticket.priority)}
-                    </select>
-                </label>
-                ${manager ? `
-                    <label>
-                        Stav
-                        <select name="status">
-                            ${statusOption('new', ticket.status)}
-                            ${statusOption('open', ticket.status)}
-                            ${statusOption('in_progress', ticket.status)}
-                            ${statusOption('waiting_for_user', ticket.status)}
-                            ${statusOption('resolved', ticket.status)}
-                            ${statusOption('closed', ticket.status)}
-                        </select>
-                    </label>
-                    ${isAdmin() ? `
-                        <label>
-                            Přiřazeno
-                            <select name="assigned_to">
-                                <option value="">Bez přiřazení</option>
-                                ${userOptions}
-                            </select>
-                        </label>
-                    ` : ''}
-                    <label>
-                        Poznámka ke změně stavu
-                        <input type="text" name="status_note" maxlength="255">
-                    </label>
-                ` : ''}
-                <label>
-                    Popis
-                    <textarea name="description" rows="6" minlength="10" maxlength="5000" required>${escapeHtml(ticket.description)}</textarea>
-                </label>
-                <div class="button-row">
-                    <button class="primary-button" type="submit">Uložit změny</button>
-                    ${canDeleteTicket(ticket) ? '<button class="ghost-button" type="button" data-delete-ticket>Odstranit</button>' : ''}
+            <div class="ticket-detail-header">
+                <div>
+                    <p class="eyebrow">Požadavek #${ticket.id}</p>
+                    <h2>${escapeHtml(ticket.title)}</h2>
+                    <div class="ticket-meta">
+                        <span>Vytvořeno ${escapeHtml(ticket.created_at)}</span>
+                        <span>Poslední změna ${escapeHtml(ticket.updated_at || ticket.created_at)}</span>
+                        <span>Řešitel ${escapeHtml(assignee)}</span>
+                    </div>
                 </div>
-            </form>
+                <div class="ticket-state-box">
+                    ${statusBadge(ticket.status)}
+                    ${priorityBadge(ticket.priority)}
+                    <button class="ghost-button kb-button" type="button" data-kb-download>KB PDF</button>
+                </div>
+            </div>
+            <div class="ticket-status-strip status-${escapeAttr(ticket.status)}">
+                <div>
+                    <span>Stav</span>
+                    <strong>${statusLabel(ticket.status)}</strong>
+                </div>
+                <div>
+                    <span>Kategorie</span>
+                    <strong>${escapeHtml(ticket.category_name)}</strong>
+                </div>
+                <div>
+                    <span>Zadal</span>
+                    <strong>${escapeHtml(ticket.author_name)}</strong>
+                </div>
+            </div>
+            ${renderQuickActions(ticket, manager)}
+            ${canEditMainFields ? renderTicketEditForm(ticket, manager, categoryOptions, userOptions) : renderLockedTicketNotice(ticket)}
 
             <hr>
             <h3>Komentáře</h3>
@@ -416,6 +405,113 @@
         `;
     }
 
+    function renderTicketEditForm(ticket, manager, categoryOptions, userOptions) {
+        return `
+            <section class="detail-section">
+                <h3>Úprava požadavku</h3>
+                <form id="ticketUpdateForm" class="stack ticket-update-form" data-ticket-id="${ticket.id}">
+                    <label>
+                        Název
+                        <input type="text" name="title" minlength="5" maxlength="160" value="${escapeAttr(ticket.title)}" required>
+                    </label>
+                    <label>
+                        Kategorie
+                        <select name="category_id">${categoryOptions}</select>
+                    </label>
+                    <label>
+                        Priorita
+                        <select name="priority">
+                            ${priorityOption('low', ticket.priority)}
+                            ${priorityOption('medium', ticket.priority)}
+                            ${priorityOption('high', ticket.priority)}
+                            ${priorityOption('urgent', ticket.priority)}
+                        </select>
+                    </label>
+                    ${manager ? `
+                        <label>
+                            Stav
+                            <select name="status">
+                                ${statusOption('new', ticket.status)}
+                                ${statusOption('open', ticket.status)}
+                                ${statusOption('in_progress', ticket.status)}
+                                ${statusOption('waiting_for_user', ticket.status)}
+                                ${statusOption('resolved', ticket.status)}
+                                ${statusOption('closed', ticket.status)}
+                            </select>
+                        </label>
+                        ${isAdmin() ? `
+                            <label>
+                                Přiřazeno
+                                <select name="assigned_to">
+                                    <option value="">Bez přiřazení</option>
+                                    ${userOptions}
+                                </select>
+                            </label>
+                        ` : ''}
+                        <label>
+                            Poznámka ke změně stavu
+                            <input type="text" name="status_note" maxlength="255">
+                        </label>
+                    ` : ''}
+                    <label>
+                        Popis
+                        <textarea name="description" rows="6" minlength="10" maxlength="5000" required>${escapeHtml(ticket.description)}</textarea>
+                    </label>
+                    <div class="button-row">
+                        <button class="primary-button" type="submit">Uložit změny</button>
+                        ${canDeleteTicket(ticket) ? '<button class="ghost-button" type="button" data-delete-ticket>Odstranit</button>' : ''}
+                    </div>
+                </form>
+            </section>
+        `;
+    }
+
+    function renderLockedTicketNotice(ticket) {
+        const text = ticket.status === 'resolved'
+            ? 'Požadavek je vyřešený. Autor ho může potvrdit a uzavřít nebo doplnit komentář.'
+            : 'Požadavek je uzavřený. Další změny už se evidují pouze komentářem.';
+
+        return `<div class="detail-notice">${text}</div>`;
+    }
+
+    function renderQuickActions(ticket, manager) {
+        const actions = [];
+        const currentUserId = Number(state.user?.id || 0);
+        const assignedToCurrentUser = Number(ticket.assigned_to || 0) === currentUserId;
+        const isClosed = ticket.status === 'closed';
+        const isResolved = ticket.status === 'resolved';
+
+        if (manager && !isClosed) {
+            if (!assignedToCurrentUser && !isResolved) {
+                actions.push({ action: 'assign', label: 'Převzít' });
+            }
+            if (['new', 'open', 'waiting_for_user'].includes(ticket.status)) {
+                actions.push({ action: 'in_progress', label: 'Začít řešit' });
+            }
+            if (!isResolved) {
+                actions.push({ action: 'resolved', label: 'Označit vyřešené', primary: true });
+            }
+            actions.push({ action: 'closed', label: 'Uzavřít' });
+        }
+
+        if (!manager && Number(ticket.author_id) === currentUserId && isResolved) {
+            actions.push({ action: 'closed', label: 'Potvrdit a uzavřít', primary: true });
+        }
+
+        if (actions.length === 0) {
+            return '';
+        }
+
+        return `
+            <div class="quick-actions">
+                <span>Rychlé akce</span>
+                <div class="button-row">
+                    ${actions.map((item) => `<button class="${item.primary ? 'primary-button' : 'secondary-button'}" type="button" data-quick-action="${escapeAttr(item.action)}">${escapeHtml(item.label)}</button>`).join('')}
+                </div>
+            </div>
+        `;
+    }
+
     async function handleTicketDetailSubmit(event) {
         const form = event.target;
 
@@ -431,6 +527,18 @@
     }
 
     async function handleTicketDetailClick(event) {
+        const kbButton = event.target.closest('[data-kb-download]');
+        if (kbButton && state.selectedTicketId) {
+            window.open(`api/index.php/tickets/${state.selectedTicketId}/kb`, '_blank', 'noopener');
+            return;
+        }
+
+        const quickButton = event.target.closest('[data-quick-action]');
+        if (quickButton && state.selectedTicketId) {
+            await runQuickTicketAction(quickButton.dataset.quickAction);
+            return;
+        }
+
         const button = event.target.closest('[data-delete-ticket]');
         if (!button || !state.selectedTicketId) {
             return;
@@ -444,6 +552,7 @@
         try {
             await api.delete(`tickets/${state.selectedTicketId}`);
             state.selectedTicketId = null;
+            state.selectedTicket = null;
             $('#ticketDetail').innerHTML = '<h2>Detail požadavku</h2><div class="empty-state">Požadavek byl odstraněn.</div>';
             showToast('Požadavek byl odstraněn.');
             await loadTickets();
@@ -452,6 +561,62 @@
         } finally {
             setLoading(false);
         }
+    }
+
+    async function runQuickTicketAction(action) {
+        const id = state.selectedTicketId;
+        const body = quickActionPayload(action);
+
+        if (!body) {
+            return;
+        }
+
+        setLoading(true);
+        try {
+            await api.patch(`tickets/${id}`, body);
+            showToast(quickActionMessage(action));
+            await loadTickets();
+            await loadTicketDetail(id);
+        } catch (error) {
+            showToast(error.message, true);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    function quickActionPayload(action) {
+        const notes = {
+            assign: 'Požadavek převzat k řešení.',
+            in_progress: 'Technik začal požadavek řešit.',
+            resolved: 'Požadavek byl označen jako vyřešený.',
+            closed: canManageTickets() ? 'Požadavek byl uzavřen.' : 'Uživatel potvrdil vyřešení požadavku.',
+        };
+
+        if (action === 'assign') {
+            return {
+                assigned_to: Number(state.user.id),
+                status: 'in_progress',
+                status_note: notes.assign,
+            };
+        }
+
+        if (['in_progress', 'resolved', 'closed'].includes(action)) {
+            return {
+                status: action,
+                status_note: notes[action],
+            };
+        }
+
+        return null;
+    }
+
+    function quickActionMessage(action) {
+        return {
+            assign: 'Požadavek byl převzat.',
+            in_progress: 'Požadavek je ve stavu řeší se.',
+            resolved: 'Požadavek byl označen jako vyřešený.',
+            closed: 'Požadavek byl uzavřen.',
+        }[action] || 'Požadavek byl upraven.';
     }
 
     async function saveTicket(form) {

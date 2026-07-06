@@ -9,6 +9,7 @@ ServisDesk je maturitní webová aplikace pro evidenci a řešení školních IT
 - role `USER`, `TECHNICIAN`, `ADMIN`
 - CRUD požadavků
 - komentáře k požadavkům
+- export KB PDF souboru z detailu požadavku
 - interní poznámky pro techniky a administrátory
 - vyhledávání, filtrování, řazení a stránkování
 - správa profilu
@@ -157,6 +158,7 @@ GET /auth/me
 GET /tickets
 POST /tickets
 PATCH /tickets/{id}
+GET /tickets/{id}/kb
 GET /admin/dashboard
 ```
 

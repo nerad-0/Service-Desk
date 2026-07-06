@@ -10,6 +10,7 @@ use App\Core\Csrf;
 use App\Core\HttpException;
 use App\Core\Request;
 use App\Core\Response;
+use App\Core\SimplePdf;
 use App\Core\Validator;
 use PDO;
 
@@ -223,9 +224,32 @@ class TicketController
         $this->assertCanView($ticket, $user);
         $data = $request->json();
         $canManage = $this->auth->canManageTickets($user);
+        $isOwner = (int)$ticket['author_id'] === (int)$user['id'];
+        $requestedStatus = array_key_exists('status', $data) ? Validator::cleanString($data['status']) : null;
+        $ownerClosingResolvedTicket = !$canManage
+            && $isOwner
+            && $ticket['status'] === 'resolved'
+            && $requestedStatus === 'closed';
 
-        if (!$canManage && !in_array($ticket['status'], ['new', 'open', 'waiting_for_user'], true)) {
-            throw new HttpException(403, 'Tento požadavek už nemůžete upravit.');
+        if (!$canManage) {
+            if (array_key_exists('assigned_to', $data)) {
+                throw new HttpException(403, 'Běžný uživatel nemůže měnit přiřazení požadavku.');
+            }
+
+            if (array_key_exists('status', $data) && !$ownerClosingResolvedTicket) {
+                throw new HttpException(403, 'Běžný uživatel může pouze uzavřít vlastní vyřešený požadavek.');
+            }
+
+            if ($ownerClosingResolvedTicket) {
+                $allowedFields = ['status' => true, 'status_note' => true];
+                foreach (array_keys($data) as $field) {
+                    if (!isset($allowedFields[$field])) {
+                        throw new HttpException(403, 'Vyřešený požadavek můžete už jen uzavřít.');
+                    }
+                }
+            } elseif (!in_array($ticket['status'], ['new', 'open', 'waiting_for_user'], true)) {
+                throw new HttpException(403, 'Tento požadavek už nemůžete upravit.');
+            }
         }
 
         $updates = [];
@@ -271,19 +295,22 @@ class TicketController
         $statusChanged = false;
         $newStatus = null;
 
-        if ($canManage && array_key_exists('status', $data)) {
-            $newStatus = Validator::cleanString($data['status']);
+        if (($canManage || $ownerClosingResolvedTicket) && array_key_exists('status', $data)) {
+            $newStatus = $requestedStatus ?? Validator::cleanString($data['status']);
             if (!Validator::enum($newStatus, self::STATUSES)) {
                 $errors['status'] = 'Neplatný stav požadavku.';
             }
             if ($newStatus !== $ticket['status']) {
+                $changedAt = date('Y-m-d H:i:s');
                 $statusChanged = true;
                 $updates[] = 'status = :status';
                 $sqlParams['status'] = $newStatus;
                 $updates[] = 'resolved_at = :resolved_at';
                 $updates[] = 'closed_at = :closed_at';
-                $sqlParams['resolved_at'] = $newStatus === 'resolved' || $newStatus === 'closed' ? date('Y-m-d H:i:s') : null;
-                $sqlParams['closed_at'] = $newStatus === 'closed' ? date('Y-m-d H:i:s') : null;
+                $sqlParams['resolved_at'] = $newStatus === 'resolved' || $newStatus === 'closed'
+                    ? ($ticket['resolved_at'] ?: $changedAt)
+                    : null;
+                $sqlParams['closed_at'] = $newStatus === 'closed' ? $changedAt : null;
             }
         }
 
@@ -294,10 +321,6 @@ class TicketController
             }
             $updates[] = 'assigned_to = :assigned_to';
             $sqlParams['assigned_to'] = $assignedTo;
-        }
-
-        if (!$canManage && (array_key_exists('status', $data) || array_key_exists('assigned_to', $data))) {
-            throw new HttpException(403, 'Běžný uživatel nemůže měnit stav ani přiřazení požadavku.');
         }
 
         if ($errors !== []) {
@@ -384,6 +407,26 @@ class TicketController
         Response::success(['comment_id' => $commentId], 'Komentář byl přidán.', 201);
     }
 
+    public function knowledgeBasePdf(Request $request, array $params): void
+    {
+        $user = $this->auth->requireLogin();
+        $ticket = $this->loadTicket((int)$params['id']);
+        $this->assertCanView($ticket, $user);
+
+        $comments = $this->publicComments((int)$ticket['id']);
+        $history = $this->statusHistory((int)$ticket['id']);
+        $title = 'KB-' . $ticket['id'] . ' ' . $ticket['title'];
+        $pdf = SimplePdf::create($title, $this->knowledgeBaseSections($ticket, $comments, $history));
+        $filename = $this->knowledgeBaseFilename($ticket);
+
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . strlen($pdf));
+        header('X-Content-Type-Options: nosniff');
+        echo $pdf;
+        exit;
+    }
+
     private function validateTicketInput(string $title, string $description, string $priority, int $categoryId): array
     {
         $errors = [];
@@ -429,6 +472,149 @@ class TicketController
         return $ticket;
     }
 
+    private function publicComments(int $ticketId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT tc.body, tc.created_at, u.name AS author_name
+             FROM ticket_comments tc
+             JOIN users u ON u.id = tc.author_id
+             WHERE tc.ticket_id = :ticket_id AND tc.is_internal = 0
+             ORDER BY tc.created_at ASC'
+        );
+        $stmt->execute(['ticket_id' => $ticketId]);
+        return $stmt->fetchAll();
+    }
+
+    private function statusHistory(int $ticketId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT th.old_status, th.new_status, th.note, th.created_at, u.name AS changed_by_name
+             FROM ticket_status_history th
+             JOIN users u ON u.id = th.changed_by
+             WHERE th.ticket_id = :ticket_id
+             ORDER BY th.created_at ASC'
+        );
+        $stmt->execute(['ticket_id' => $ticketId]);
+        return $stmt->fetchAll();
+    }
+
+    private function knowledgeBaseSections(array $ticket, array $comments, array $history): array
+    {
+        $sections = [
+            [
+                'heading' => 'Identifikace pozadavku',
+                'lines' => [
+                    'Cislo: #' . $ticket['id'],
+                    'Stav: ' . $this->statusLabel((string)$ticket['status']),
+                    'Priorita: ' . $this->priorityLabel((string)$ticket['priority']),
+                    'Kategorie: ' . $ticket['category_name'],
+                    'Zadavatel: ' . $ticket['author_name'] . ' (' . $ticket['author_email'] . ')',
+                    'Resitel: ' . ($ticket['assigned_name'] ?: 'Neprirazeno'),
+                    'Vytvoreno: ' . $ticket['created_at'],
+                    'Posledni zmena: ' . $ticket['updated_at'],
+                    'Vyreseno: ' . ($ticket['resolved_at'] ?: '-'),
+                    'Uzavreno: ' . ($ticket['closed_at'] ?: '-'),
+                ],
+            ],
+            [
+                'heading' => 'Popis problemu',
+                'lines' => [(string)$ticket['description']],
+            ],
+        ];
+
+        $solutionLines = [];
+        foreach ($comments as $comment) {
+            $solutionLines[] = $comment['created_at'] . ' - ' . $comment['author_name'] . ': ' . $comment['body'];
+        }
+
+        if ($solutionLines === []) {
+            $solutionLines[] = 'Zatim neni zapsany verejny komentar k reseni.';
+        }
+
+        $sections[] = [
+            'heading' => 'Postup reseni a verejne komentare',
+            'lines' => $solutionLines,
+        ];
+
+        $historyLines = [];
+        foreach ($history as $item) {
+            $from = $item['old_status'] ? $this->statusLabel((string)$item['old_status']) : 'Vytvoreno';
+            $to = $this->statusLabel((string)$item['new_status']);
+            $historyLines[] = $item['created_at'] . ' - ' . $item['changed_by_name'] . ': ' . $from . ' -> ' . $to . '. ' . ($item['note'] ?: '');
+        }
+
+        if ($historyLines === []) {
+            $historyLines[] = 'Historie stavu zatim neni k dispozici.';
+        }
+
+        $sections[] = [
+            'heading' => 'Historie stavu',
+            'lines' => $historyLines,
+        ];
+
+        $sections[] = [
+            'heading' => 'Poznamka ke znalostni bazi',
+            'lines' => [
+                in_array($ticket['status'], ['resolved', 'closed'], true)
+                    ? 'Tento KB dokument slouzi jako opakovatelny zaznam overeneho reseni pozadavku.'
+                    : 'Pozadavek jeste neni uzavreny. Dokument slouzi jako pracovni KB zaznam aktualniho stavu.',
+            ],
+        ];
+
+        return $sections;
+    }
+
+    private function knowledgeBaseFilename(array $ticket): string
+    {
+        $title = strtr((string)$ticket['title'], $this->transliterationMap());
+        $slug = $title;
+
+        if (function_exists('iconv')) {
+            $converted = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $title);
+            if ($converted !== false) {
+                $slug = $converted;
+            }
+        }
+
+        $slug = strtolower((string)preg_replace('/[^a-zA-Z0-9]+/', '-', $slug));
+        $slug = trim($slug, '-') ?: 'pozadavek';
+        return 'KB-' . (int)$ticket['id'] . '-' . substr($slug, 0, 48) . '.pdf';
+    }
+
+    private function transliterationMap(): array
+    {
+        return [
+            'á' => 'a', 'č' => 'c', 'ď' => 'd', 'é' => 'e', 'ě' => 'e', 'í' => 'i',
+            'ň' => 'n', 'ó' => 'o', 'ř' => 'r', 'š' => 's', 'ť' => 't', 'ú' => 'u',
+            'ů' => 'u', 'ý' => 'y', 'ž' => 'z',
+            'Á' => 'A', 'Č' => 'C', 'Ď' => 'D', 'É' => 'E', 'Ě' => 'E', 'Í' => 'I',
+            'Ň' => 'N', 'Ó' => 'O', 'Ř' => 'R', 'Š' => 'S', 'Ť' => 'T', 'Ú' => 'U',
+            'Ů' => 'U', 'Ý' => 'Y', 'Ž' => 'Z',
+        ];
+    }
+
+    private function statusLabel(string $status): string
+    {
+        return [
+            'new' => 'Novy',
+            'open' => 'Otevreny',
+            'in_progress' => 'Resi se',
+            'waiting_for_user' => 'Ceka na uzivatele',
+            'resolved' => 'Vyreseny',
+            'closed' => 'Uzavreny',
+        ][$status] ?? $status;
+    }
+
+    private function priorityLabel(string $priority): string
+    {
+        return [
+            'low' => 'Nizka',
+            'medium' => 'Stredni',
+            'high' => 'Vysoka',
+            'urgent' => 'Urgentni',
+        ][$priority] ?? $priority;
+    }
+
     private function assertCanView(array $ticket, array $user): void
     {
         if ($this->auth->canManageTickets($user)) {
@@ -465,4 +651,3 @@ class TicketController
         return (int)$stmt->fetchColumn() > 0;
     }
 }
-

@@ -159,6 +159,17 @@ GET /tickets?status=new&priority=urgent&page=1
   - `ADMIN`
 - Poznámka: interní komentáře vidí jen `TECHNICIAN` a `ADMIN`
 
+### GET /tickets/{id}/kb
+
+- Účel: stažení KB PDF souboru se souhrnem problému, postupu řešení, veřejných komentářů a historie stavů
+- Oprávnění:
+  - vlastník požadavku
+  - `TECHNICIAN`
+  - `ADMIN`
+- Formát odpovědi: `application/pdf`
+- Název souboru: `KB-{id}-{nazev}.pdf`
+- Poznámka: do KB PDF se nezahrnují interní poznámky techniků
+
 ### PATCH nebo PUT /tickets/{id}
 
 - Účel: úprava požadavku

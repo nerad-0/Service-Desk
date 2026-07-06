@@ -41,6 +41,7 @@ try {
     $router->add('GET', '/tickets', [$ticketController, 'index']);
     $router->add('POST', '/tickets', [$ticketController, 'create']);
     $router->add('GET', '/tickets/{id}', [$ticketController, 'show']);
+    $router->add('GET', '/tickets/{id}/kb', [$ticketController, 'knowledgeBasePdf']);
     $router->add('PATCH', '/tickets/{id}', [$ticketController, 'update']);
     $router->add('PUT', '/tickets/{id}', [$ticketController, 'update']);
     $router->add('DELETE', '/tickets/{id}', [$ticketController, 'delete']);
