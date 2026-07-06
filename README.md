@@ -204,8 +204,8 @@ git push -u origin main
 - [Scénář živé ukázky](docs/DEMO_SCRIPT.md)
 - [Otázky komise](docs/COMMISSION_QUESTIONS.md)
 - [Průvodce obhajobou kódu](docs/DEFENSE_GUIDE.md)
+- [Finální audit](docs/FINAL_AUDIT.md)
 
 ## Screenshoty
 
 Screenshoty je vhodné doplnit po prvním lokálním spuštění aplikace v prostředí s PHP a MySQL/MariaDB.
-
