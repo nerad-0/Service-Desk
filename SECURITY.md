@@ -36,6 +36,10 @@ Aplikace používá PHP session. Po přihlášení se regeneruje session ID pomo
 
 Oprávnění se kontroluje na backendu. Nestačí tedy skrýt tlačítko ve frontendu. Například běžný uživatel vidí pouze vlastní požadavky, zatímco technik a administrátor mohou pracovat se všemi požadavky.
 
+### Správa účtů
+
+Veřejná registrace je vypnutá. Nové účty vytváří pouze administrátor přes chráněný endpoint `POST /admin/users`, který vyžaduje přihlášení, roli `ADMIN` a platný CSRF token.
+
 ### Ochrana proti IDOR
 
 Před zobrazením nebo úpravou požadavku backend kontroluje, zda je uživatel vlastníkem požadavku, technikem nebo administrátorem. Změna ID v URL sama o sobě nestačí k získání přístupu.
@@ -70,4 +74,3 @@ V produkčním režimu lze v konfiguraci vypnout `debug`. Aplikace pak nevrací 
 - Projekt zatím neposílá e-mailové ověřování účtu.
 - Přílohy k požadavkům nejsou implementované, takže se neřeší antivirová kontrola uploadů.
 - Na produkčním hostingu je potřeba zapnout HTTPS a nastavit `debug` na `false`.
-

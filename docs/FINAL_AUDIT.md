@@ -12,7 +12,8 @@ Projekt řeší evidenci a zpracování školních IT požadavků. Uživatel nah
 
 ## 3. Hlavní funkce
 
-- registrace, přihlášení a odhlášení
+- přihlášení a odhlášení
+- vytváření uživatelů administrátorem
 - role `USER`, `TECHNICIAN`, `ADMIN`
 - CRUD požadavků
 - komentáře a interní poznámky
@@ -51,7 +52,6 @@ Podrobnosti jsou v `docs/DATABASE.md`.
 
 Hlavní endpointy:
 
-- `/auth/register`
 - `/auth/login`
 - `/auth/logout`
 - `/auth/me`

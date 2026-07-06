@@ -24,7 +24,8 @@ Ve škole často vznikají technické požadavky: nefunkční projektor, problé
 
 ## Funkční požadavky
 
-- registrace, přihlášení a odhlášení uživatele
+- přihlášení a odhlášení uživatele
+- vytváření uživatelských účtů administrátorem
 - role `USER`, `TECHNICIAN` a `ADMIN`
 - vytvoření, zobrazení, úprava a uzavření požadavku
 - komentáře k požadavkům
@@ -49,7 +50,7 @@ Ve škole často vznikají technické požadavky: nefunkční projektor, problé
 
 ### USER
 
-- registrace a přihlášení
+- přihlášení
 - vytvoření vlastního požadavku
 - zobrazení vlastních požadavků
 - úprava vlastního otevřeného požadavku
@@ -76,7 +77,7 @@ Ve škole často vznikají technické požadavky: nefunkční projektor, problé
 
 ## Hlavní uživatelské scénáře
 
-1. Uživatel se zaregistruje a přihlásí.
+1. Administrátor vytvoří uživatelský účet a uživatel se přihlásí.
 2. Uživatel vytvoří požadavek s kategorií, prioritou a popisem.
 3. Technik vidí nový požadavek v seznamu, přiřadí ho sobě a odpoví komentářem.
 4. Technik změní stav na `in_progress` a později na `resolved`.
@@ -86,7 +87,7 @@ Ve škole často vznikají technické požadavky: nefunkční projektor, problé
 ## Hlavní stránky aplikace
 
 - přihlášení
-- registrace
+- administrátorská správa uživatelů
 - seznam požadavků
 - detail požadavku
 - vytvoření požadavku
@@ -97,7 +98,7 @@ Ve škole často vznikají technické požadavky: nefunkční projektor, problé
 
 ## Hlavní API operace
 
-- `POST /auth/register`
+- `POST /admin/users`
 - `POST /auth/login`
 - `POST /auth/logout`
 - `GET /auth/me`
@@ -129,7 +130,7 @@ Ve škole často vznikají technické požadavky: nefunkční projektor, problé
 ### MVP
 
 - databázové schéma a testovací data
-- registrace, přihlášení, odhlášení
+- přihlášení, odhlášení a administrátorská správa účtů
 - role `USER` a `ADMIN`
 - vytvoření a zobrazení požadavků
 - komentáře k požadavkům
@@ -153,4 +154,3 @@ Ve škole často vznikají technické požadavky: nefunkční projektor, problé
 - export požadavků do CSV
 - tmavý režim
 - pokročilé SLA metriky
-

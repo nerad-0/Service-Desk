@@ -38,12 +38,12 @@
 
     function bindEvents() {
         $('#loginForm').addEventListener('submit', handleLogin);
-        $('#registerForm').addEventListener('submit', handleRegister);
         $('#logoutButton').addEventListener('click', handleLogout);
         $('#ticketCreateForm').addEventListener('submit', handleCreateTicket);
         $('#toggleTicketForm').addEventListener('click', () => toggleTicketForm(true));
         $('#cancelTicketForm').addEventListener('click', () => toggleTicketForm(false));
         $('#profileForm').addEventListener('submit', handleProfileSave);
+        $('#userCreateForm').addEventListener('submit', handleCreateUser);
         $('#categoryCreateForm').addEventListener('submit', handleCreateCategory);
 
         $$('.nav-button, .brand').forEach((button) => {
@@ -128,26 +128,6 @@
             api.setCsrfToken(data.csrf_token);
             form.reset();
             showToast('Přihlášení proběhlo úspěšně.');
-            renderSession();
-            await Promise.all([loadCategories(), loadTickets()]);
-        } catch (error) {
-            showToast(error.message, true);
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    async function handleRegister(event) {
-        event.preventDefault();
-        const form = event.currentTarget;
-        const body = objectFromForm(form);
-        setLoading(true);
-        try {
-            const data = await api.post('auth/register', body);
-            state.user = data.user;
-            api.setCsrfToken(data.csrf_token);
-            form.reset();
-            showToast('Účet byl vytvořen.');
             renderSession();
             await Promise.all([loadCategories(), loadTickets()]);
         } catch (error) {
@@ -597,6 +577,7 @@
             const [users, roles] = await Promise.all([api.get('admin/users'), api.get('admin/roles')]);
             state.users = users.items || [];
             state.roles = roles.items || [];
+            renderUserCreateRoles();
             renderUsers();
         } catch (error) {
             showToast(error.message, true);
@@ -619,6 +600,32 @@
                 <td><button class="ghost-button" type="button" data-save-user>Uložit</button></td>
             </tr>
         `).join('');
+    }
+
+    function renderUserCreateRoles() {
+        $('#userCreateRoleSelect').innerHTML = state.roles.map((role) => (
+            `<option value="${role.id}" ${role.name === 'USER' ? 'selected' : ''}>${escapeHtml(role.label)}</option>`
+        )).join('');
+    }
+
+    async function handleCreateUser(event) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const body = objectFromForm(form);
+        body.role_id = Number(body.role_id);
+
+        setLoading(true);
+        try {
+            await api.post('admin/users', body);
+            form.reset();
+            renderUserCreateRoles();
+            showToast('Uživatel byl vytvořen.');
+            await loadUsers();
+        } catch (error) {
+            showToast(error.message, true);
+        } finally {
+            setLoading(false);
+        }
     }
 
     async function handleUserTableClick(event) {

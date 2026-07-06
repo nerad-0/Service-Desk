@@ -33,7 +33,8 @@ Poznámky: Zdůraznit reálnost problému.
 
 ## Slide 5: Hlavní funkce
 
-- registrace a přihlášení
+- přihlášení
+- vytváření uživatelů administrátorem
 - správa požadavků
 - komentáře
 - role a oprávnění
@@ -123,4 +124,3 @@ Screenshot: ER diagram nebo výřez `docs/DATABASE.md`.
 - exporty
 - SLA statistiky
 - shrnutí přínosu projektu
-

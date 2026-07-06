@@ -33,12 +33,12 @@ powershell -ExecutionPolicy Bypass -File tests/static_check.ps1
 
 ## Manuální testovací scénáře
 
-### 1. Registrace
+### 1. Veřejná registrace je vypnutá
 
-- Účel: ověřit vytvoření nového účtu
+- Účel: ověřit, že si účet nemůže vytvořit kdokoliv
 - Vstupní podmínky: běžící aplikace a prázdný nebo seedovaný systém
-- Postup: otevřít aplikaci, vyplnit registrační formulář, odeslat
-- Očekávaný výsledek: uživatel je přihlášen a vidí seznam požadavků
+- Postup: zavolat `POST /auth/register`
+- Očekávaný výsledek: API vrátí `403`
 - Skutečný výsledek: vyžaduje ověření po instalaci PHP/MySQL
 
 ### 2. Přihlášení
@@ -54,9 +54,9 @@ powershell -ExecutionPolicy Bypass -File tests/static_check.ps1
 - Postup: použít existující e-mail a špatné heslo
 - Očekávaný výsledek: API vrátí `401` a frontend zobrazí chybu
 
-### 4. Duplicitní registrace
+### 4. Duplicitní vytvoření uživatele administrátorem
 
-- Postup: registrovat e-mail, který už existuje
+- Postup: jako administrátor vytvořit uživatele s e-mailem, který už existuje
 - Očekávaný výsledek: API vrátí `409`
 
 ### 5. Odhlášení
@@ -158,4 +158,3 @@ powershell -ExecutionPolicy Bypass -File tests/static_check.ps1
 
 - Postup: provést změnu požadavku a otevřít audit log jako admin
 - Očekávaný výsledek: změna je dohledatelná v auditním logu
-

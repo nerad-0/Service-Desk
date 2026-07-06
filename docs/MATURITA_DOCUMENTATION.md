@@ -22,7 +22,8 @@ Požadavky jsou rozděleny na funkční a nefunkční. Funkční požadavky popi
 
 ## 6. Funkční požadavky
 
-- registrace a přihlášení
+- přihlášení a odhlášení
+- vytváření uživatelů administrátorem
 - role `USER`, `TECHNICIAN`, `ADMIN`
 - vytváření a správa požadavků
 - komentáře a interní poznámky

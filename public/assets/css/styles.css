@@ -168,6 +168,10 @@ button:disabled {
     margin: 48px auto;
 }
 
+.login-layout {
+    align-items: start;
+}
+
 .auth-panel,
 .panel {
     background: var(--surface);
@@ -177,6 +181,50 @@ button:disabled {
 
 .auth-panel {
     padding: 22px;
+}
+
+.auth-copy {
+    margin-bottom: 14px;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.access-panel {
+    background: var(--surface-soft);
+}
+
+.demo-accounts {
+    margin: 0 0 14px;
+    border-top: 1px solid var(--line);
+}
+
+.demo-accounts div {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.demo-accounts dt {
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.demo-accounts dd {
+    margin: 0;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 13px;
+}
+
+.access-note {
+    margin: 0;
+    padding: 10px;
+    border-left: 3px solid var(--primary);
+    background: var(--primary-soft);
+    color: var(--primary-dark);
+    font-size: 13px;
 }
 
 .panel {
@@ -531,6 +579,10 @@ textarea:focus {
     border-bottom: 1px solid var(--line);
 }
 
+.user-create-form {
+    grid-template-columns: 1.1fr 1.35fr 1fr 1fr auto;
+}
+
 .narrow-panel {
     max-width: 620px;
 }
@@ -641,6 +693,7 @@ canvas {
     .auth-grid,
     .filters,
     .inline-form,
+    .user-create-form,
     .ops-summary {
         grid-template-columns: 1fr;
     }

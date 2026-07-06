@@ -48,6 +48,7 @@ try {
 
     $router->add('GET', '/admin/dashboard', [$adminController, 'dashboard']);
     $router->add('GET', '/admin/users', [$adminController, 'users']);
+    $router->add('POST', '/admin/users', [$adminController, 'createUser']);
     $router->add('PATCH', '/admin/users/{id}', [$adminController, 'updateUser']);
     $router->add('GET', '/admin/roles', [$adminController, 'roles']);
     $router->add('GET', '/admin/categories', [$adminController, 'categories']);

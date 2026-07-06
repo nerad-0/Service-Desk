@@ -30,62 +30,7 @@ class AuthController
 
     public function register(Request $request): void
     {
-        $data = $request->json();
-        $name = Validator::cleanString($data['name'] ?? '');
-        $email = mb_strtolower(Validator::cleanString($data['email'] ?? ''));
-        $password = (string)($data['password'] ?? '');
-        $errors = [];
-
-        if (!Validator::length($name, 2, 120)) {
-            $errors['name'] = 'Jméno musí mít 2 až 120 znaků.';
-        }
-
-        if (!Validator::email($email)) {
-            $errors['email'] = 'Zadejte platný e-mail.';
-        }
-
-        if (mb_strlen($password) < 8) {
-            $errors['password'] = 'Heslo musí mít alespoň 8 znaků.';
-        }
-
-        if ($errors !== []) {
-            throw new HttpException(422, 'Registrace obsahuje chyby.', $errors);
-        }
-
-        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM users WHERE email = :email');
-        $stmt->execute(['email' => $email]);
-
-        if ((int)$stmt->fetchColumn() > 0) {
-            throw new HttpException(409, 'Uživatel s tímto e-mailem už existuje.', ['email' => 'E-mail už je zaregistrovaný.']);
-        }
-
-        $roleStmt = $this->pdo->prepare('SELECT id FROM roles WHERE name = :name');
-        $roleStmt->execute(['name' => 'USER']);
-        $roleId = $roleStmt->fetchColumn();
-
-        if (!$roleId) {
-            throw new HttpException(500, 'V databázi chybí základní role USER.');
-        }
-
-        $insert = $this->pdo->prepare(
-            'INSERT INTO users (role_id, name, email, password_hash)
-             VALUES (:role_id, :name, :email, :password_hash)'
-        );
-        $insert->execute([
-            'role_id' => (int)$roleId,
-            'name' => $name,
-            'email' => $email,
-            'password_hash' => password_hash($password, PASSWORD_DEFAULT),
-        ]);
-
-        $userId = (int)$this->pdo->lastInsertId();
-        $this->auth->login($userId);
-        $this->audit->log($userId, 'auth.registered', 'user', $userId);
-
-        Response::success([
-            'user' => $this->auth->user(),
-            'csrf_token' => $this->csrf->token(),
-        ], 'Registrace byla úspěšná.', 201);
+        throw new HttpException(403, 'Veřejná registrace je vypnutá. Účty vytváří administrátor.');
     }
 
     public function login(Request $request): void

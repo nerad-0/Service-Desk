@@ -4,7 +4,8 @@ ServisDesk je maturitní webová aplikace pro evidenci a řešení školních IT
 
 ## Hlavní funkce
 
-- registrace, přihlášení a odhlášení
+- přihlášení a odhlášení
+- vytváření uživatelů pouze administrátorem
 - role `USER`, `TECHNICIAN`, `ADMIN`
 - CRUD požadavků
 - komentáře k požadavkům

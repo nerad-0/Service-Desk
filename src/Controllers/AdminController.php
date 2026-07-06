@@ -110,6 +110,76 @@ class AdminController
         Response::success(['items' => $stmt->fetchAll()]);
     }
 
+    public function createUser(Request $request): void
+    {
+        $currentUser = $this->auth->requireAnyRole(['ADMIN']);
+        $this->csrf->assertValid($request);
+        $data = $request->json();
+
+        $name = Validator::cleanString($data['name'] ?? '');
+        $email = mb_strtolower(Validator::cleanString($data['email'] ?? ''));
+        $password = (string)($data['password'] ?? '');
+        $roleId = (int)($data['role_id'] ?? 0);
+        $phone = Validator::cleanString($data['phone'] ?? '');
+        $department = Validator::cleanString($data['department'] ?? '');
+        $isActive = array_key_exists('is_active', $data) ? (bool)$data['is_active'] : true;
+        $errors = [];
+
+        if (!Validator::length($name, 2, 120)) {
+            $errors['name'] = 'Jméno musí mít 2 až 120 znaků.';
+        }
+
+        if (!Validator::email($email)) {
+            $errors['email'] = 'Zadejte platný e-mail.';
+        }
+
+        if (mb_strlen($password) < 8) {
+            $errors['password'] = 'Heslo musí mít alespoň 8 znaků.';
+        }
+
+        if (!$this->roleExists($roleId)) {
+            $errors['role_id'] = 'Vybraná role neexistuje.';
+        }
+
+        if (mb_strlen($phone) > 40) {
+            $errors['phone'] = 'Telefon může mít nejvýše 40 znaků.';
+        }
+
+        if (mb_strlen($department) > 120) {
+            $errors['department'] = 'Oddělení může mít nejvýše 120 znaků.';
+        }
+
+        if ($errors !== []) {
+            throw new HttpException(422, 'Uživatel obsahuje chyby.', $errors);
+        }
+
+        $duplicate = $this->pdo->prepare('SELECT COUNT(*) FROM users WHERE email = :email');
+        $duplicate->execute(['email' => $email]);
+
+        if ((int)$duplicate->fetchColumn() > 0) {
+            throw new HttpException(409, 'Uživatel s tímto e-mailem už existuje.', ['email' => 'E-mail už je obsazený.']);
+        }
+
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO users (role_id, name, email, password_hash, phone, department, is_active)
+             VALUES (:role_id, :name, :email, :password_hash, :phone, :department, :is_active)'
+        );
+        $stmt->execute([
+            'role_id' => $roleId,
+            'name' => $name,
+            'email' => $email,
+            'password_hash' => password_hash($password, PASSWORD_DEFAULT),
+            'phone' => $phone === '' ? null : $phone,
+            'department' => $department === '' ? null : $department,
+            'is_active' => $isActive ? 1 : 0,
+        ]);
+
+        $userId = (int)$this->pdo->lastInsertId();
+        $this->audit->log((int)$currentUser['id'], 'admin.user_created', 'user', $userId);
+
+        Response::success(['user' => $this->findUser($userId)], 'Uživatel byl vytvořen.', 201);
+    }
+
     public function updateUser(Request $request, array $params): void
     {
         $currentUser = $this->auth->requireAnyRole(['ADMIN']);
@@ -290,4 +360,3 @@ class AdminController
         return (int)$stmt->fetchColumn() > 0;
     }
 }
-
