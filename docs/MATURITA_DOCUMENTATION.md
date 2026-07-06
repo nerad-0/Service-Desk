@@ -88,6 +88,8 @@ Backend je v PHP. Hlavní části jsou router, request/response helpery, databá
 
 Frontend je vytvořen v HTML, CSS a JavaScriptu. JavaScript komunikuje s API přes Fetch API, pracuje se stavem přihlášeného uživatele, zobrazuje formuláře, seznamy, detail požadavku a dashboard.
 
+Vizuální návrh je popsán v `docs/DESIGN_BRIEF.md`. Rozhraní je záměrně kompaktní a pracovní, protože ServisDesk je servisní evidence, ne marketingová stránka.
+
 ## 17. Autentizace
 
 Autentizace používá PHP session. Po přihlášení se uloží ID uživatele do session a regeneruje se session ID.
@@ -135,4 +137,3 @@ Administrátor spravuje uživatele, role, kategorie a sleduje auditní log. Tech
 ## 26. Závěr
 
 ServisDesk splňuje hlavní cíle maturitního projektu. Obsahuje frontend, backend, relační databázi, REST API, role, CRUD operace, administraci, bezpečnostní prvky, testovací podklady a dokumentaci pro obhajobu.
-

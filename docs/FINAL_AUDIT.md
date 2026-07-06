@@ -100,6 +100,7 @@ PHP a MySQL/MariaDB nebyly v PATH dostupné, takže nebylo možné spustit PHP l
 - `docs/ANALYSIS.md`
 - `docs/API.md`
 - `docs/DATABASE.md`
+- `docs/DESIGN_BRIEF.md`
 - `docs/INSTALLATION.md`
 - `docs/TESTING.md`
 - `docs/MATURITA_DOCUMENTATION.md`
@@ -177,4 +178,3 @@ Podrobnosti jsou v `docs/DEFENSE_GUIDE.md`.
 - funkčnost dashboardu proti skutečné databázi
 - odeslání formulářů přes prohlížeč
 - případné pořízení screenshotů pro prezentaci
-

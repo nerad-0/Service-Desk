@@ -14,7 +14,7 @@
             <span class="brand-mark">SD</span>
             <span class="brand-text">ServisDesk</span>
         </a>
-        <nav class="main-nav" id="mainNav" aria-label="Hlavní navigace">
+        <nav class="main-nav" id="mainNav" aria-label="Hlavní navigace" hidden>
             <button class="nav-button active" type="button" data-nav="tickets">Požadavky</button>
             <button class="nav-button" type="button" data-nav="admin" data-manager-only hidden>Správa</button>
             <button class="nav-button" type="button" data-nav="profile">Profil</button>
@@ -174,7 +174,7 @@
             <div class="view-heading">
                 <div>
                     <p class="eyebrow">Administrace</p>
-                    <h1>Dashboard</h1>
+                    <h1>Provoz požadavků</h1>
                 </div>
                 <div class="segmented" id="adminTabs">
                     <button type="button" class="active" data-admin-tab="dashboard">Přehled</button>
@@ -185,14 +185,21 @@
             </div>
 
             <section id="dashboardPanel" data-admin-panel>
-                <div class="stat-grid" id="dashboardStats"></div>
+                <div class="ops-summary" id="dashboardStats"></div>
                 <div class="dashboard-grid">
-                    <section class="panel">
-                        <h2>Požadavky podle stavu</h2>
+                    <section class="panel workload-panel">
+                        <div class="section-title">
+                            <h2>Rozložení práce podle stavu</h2>
+                            <p>Počty vycházejí z aktuálních požadavků v databázi.</p>
+                        </div>
                         <canvas id="statusChart" width="640" height="280"></canvas>
                     </section>
-                    <section class="panel">
-                        <h2>Poslední požadavky</h2>
+                    <section class="panel queue-panel">
+                        <div class="section-title">
+                            <h2>Aktuální fronta</h2>
+                            <p>Priorita a poslední založené požadavky pro rychlou orientaci technika.</p>
+                        </div>
+                        <div id="prioritySummary" class="priority-summary"></div>
                         <div id="latestTickets"></div>
                     </section>
                 </div>
@@ -221,7 +228,7 @@
                 <form id="categoryCreateForm" class="inline-form">
                     <input type="text" name="name" placeholder="Název" maxlength="100" required>
                     <input type="text" name="description" placeholder="Popis" maxlength="255">
-                    <input type="color" name="color" value="#2563eb" aria-label="Barva kategorie">
+                    <input type="color" name="color" value="#0f5f57" aria-label="Barva kategorie">
                     <button class="primary-button" type="submit">Přidat</button>
                 </form>
                 <div class="table-wrap">
@@ -287,4 +294,3 @@
     <script src="assets/js/app.js"></script>
 </body>
 </html>
-

@@ -108,7 +108,9 @@
                 await Promise.all([loadCategories(), loadTickets()]);
             }
         } catch (error) {
-            showToast(error.message, true);
+            if (error.status !== 404) {
+                showToast(error.message, true);
+            }
             renderLoggedOut();
         } finally {
             setLoading(false);
@@ -178,6 +180,7 @@
         }
 
         $('#authView').hidden = true;
+        $('#mainNav').hidden = false;
         $('[data-view]').hidden = true;
         $('#ticketsView').hidden = false;
         $('#logoutButton').hidden = false;
@@ -193,6 +196,7 @@
 
     function renderLoggedOut() {
         $('#authView').hidden = false;
+        $('#mainNav').hidden = true;
         $$('[data-view]').forEach((view) => {
             view.hidden = true;
         });
@@ -560,18 +564,29 @@
     function renderDashboard(data) {
         const summary = data.summary || {};
         $('#dashboardStats').innerHTML = [
-            statCard('Celkem', summary.total_tickets || 0),
-            statCard('Aktivní', summary.active_tickets || 0),
-            statCard('Vyřešené', summary.resolved_tickets || 0),
-            statCard('Uzavřené', summary.closed_tickets || 0),
+            summaryMetric('Všechny požadavky', summary.total_tickets || 0),
+            summaryMetric('Aktivní práce', summary.active_tickets || 0),
+            summaryMetric('Vyřešeno', summary.resolved_tickets || 0),
+            summaryMetric('Uzavřeno', summary.closed_tickets || 0),
         ].join('');
 
-        $('#latestTickets').innerHTML = `<div class="mini-list">${(data.latest_tickets || []).map((ticket) => `
-            <div class="mini-item">
-                <strong>#${ticket.id} ${escapeHtml(ticket.title)}</strong>
-                <div class="meta">${statusLabel(ticket.status)} · ${priorityLabel(ticket.priority)} · ${escapeHtml(ticket.author_name)}</div>
+        $('#prioritySummary').innerHTML = (data.priority_counts || []).map((item) => `
+            <div class="priority-row">
+                ${priorityBadge(item.priority)}
+                <span>${priorityLabel(item.priority)}</span>
+                <strong>${escapeHtml(item.total)}</strong>
             </div>
-        `).join('') || '<div class="empty-state">Žádná data.</div>'}</div>`;
+        `).join('') || '<div class="empty-state">Žádné priority k zobrazení.</div>';
+
+        $('#latestTickets').innerHTML = `<div class="mini-list">${(data.latest_tickets || []).map((ticket) => `
+            <div class="ticket-line">
+                ${statusBadge(ticket.status)}
+                <div>
+                    <strong>#${ticket.id} ${escapeHtml(ticket.title)}</strong>
+                    <div class="meta">${priorityLabel(ticket.priority)} · ${escapeHtml(ticket.author_name)} · ${escapeHtml(ticket.created_at)}</div>
+                </div>
+            </div>
+        `).join('') || '<div class="empty-state">Žádné požadavky ve frontě.</div>'}</div>`;
 
         drawStatusChart(data.status_counts || []);
     }
@@ -849,8 +864,8 @@
         }[status] || '#657284';
     }
 
-    function statCard(label, value) {
-        return `<div class="stat-card"><span class="meta">${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`;
+    function summaryMetric(label, value) {
+        return `<div class="summary-metric"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`;
     }
 
     function canManageTickets() {

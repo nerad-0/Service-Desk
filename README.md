@@ -116,6 +116,7 @@ servisdesk/
 │   ├── API.md
 │   ├── COMMISSION_QUESTIONS.md
 │   ├── DATABASE.md
+│   ├── DESIGN_BRIEF.md
 │   ├── DEFENSE_GUIDE.md
 │   ├── DEMO_SCRIPT.md
 │   ├── INSTALLATION.md
@@ -200,6 +201,7 @@ git push -u origin main
 ## Dokumentace k obhajobě
 
 - [Maturitní dokumentace](docs/MATURITA_DOCUMENTATION.md)
+- [Design brief](docs/DESIGN_BRIEF.md)
 - [Prezentace](docs/PRESENTATION.md)
 - [Scénář živé ukázky](docs/DEMO_SCRIPT.md)
 - [Otázky komise](docs/COMMISSION_QUESTIONS.md)

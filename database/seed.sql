@@ -12,10 +12,10 @@ INSERT INTO users (id, role_id, name, email, password_hash, phone, department, i
     (4, 1, 'Učitel Petr Svoboda', 'ucitel@servisdesk.local', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '+420 333 444 555', 'Matematika', 1);
 
 INSERT INTO categories (id, name, description, color, is_active) VALUES
-    (1, 'Hardware', 'Počítače, monitory, projektory, tiskárny a další fyzická zařízení.', '#0f766e', 1),
-    (2, 'Software', 'Instalace aplikací, licence, aktualizace a chyby programů.', '#7c3aed', 1),
-    (3, 'Síť a internet', 'Wi-Fi, kabelová síť, VPN a přístup k internetu.', '#2563eb', 1),
-    (4, 'Účty a přístupy', 'Přihlašování, hesla, školní účty a oprávnění.', '#c2410c', 1);
+    (1, 'Hardware', 'Počítače, monitory, projektory, tiskárny a další fyzická zařízení.', '#0f5f57', 1),
+    (2, 'Software', 'Instalace aplikací, licence, aktualizace a chyby programů.', '#4d5965', 1),
+    (3, 'Síť a internet', 'Wi-Fi, kabelová síť, VPN a přístup k internetu.', '#2f5f8f', 1),
+    (4, 'Účty a přístupy', 'Přihlašování, hesla, školní účty a oprávnění.', '#9a5b13', 1);
 
 INSERT INTO tickets (id, category_id, author_id, assigned_to, title, description, status, priority, created_at, updated_at, resolved_at, closed_at) VALUES
     (1, 1, 4, 2, 'Projektor v učebně 204 se nezapne', 'Po zapnutí projektoru bliká kontrolka, ale obraz se nezobrazí. Problém trvá od pondělí.', 'in_progress', 'high', '2026-06-20 08:20:00', '2026-06-20 09:10:00', NULL, NULL),
@@ -48,4 +48,3 @@ INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata, ip_a
     (1, 'seed.database_loaded', 'system', NULL, JSON_OBJECT('source', 'seed.sql'), '127.0.0.1', NOW()),
     (2, 'ticket.assigned', 'ticket', 1, JSON_OBJECT('assigned_to', 2), '127.0.0.1', '2026-06-20 09:10:00'),
     (2, 'ticket.status_changed', 'ticket', 4, JSON_OBJECT('old_status', 'new', 'new_status', 'resolved'), '127.0.0.1', '2026-06-16 14:30:00');
-
